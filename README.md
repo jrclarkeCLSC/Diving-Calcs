@@ -1,1 +1,1 @@
-Divers can estimate the riskiness of a dive based on expected depth, gas mixture, and work/ventilation rate. The result is an estiamtion of the probability of dive failure, along with other expected values related to diving, such as gas density, PO2, PN2, and EAD.
+Divers can estimate the riskiness of a dive based on expected depth, gas mixture, and work/ventilation rate. The result is an estimation of the probability of dive failure, along with other expected values related to diving, such as gas density, PO2, PN2, and EAD.
