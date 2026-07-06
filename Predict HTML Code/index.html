@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Predict - Dive Outcome Prediction</title>
+  <style>
+    :root {
+      --bg: #d7d7d7;
+      --panel: #e6e6e6;
+      --field: #ffffff;
+      --text: #111;
+      --border: #9b9b9b;
+      --plot: #0d74c9;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      margin: 0;
+      background: #b9cde2;
+      color: var(--text);
+    }
+
+    .app {
+      max-width: 1000px;
+      margin: 8px auto;
+      background: var(--bg);
+      border: 1px solid #7d7d7d;
+      padding: 14px 16px 16px 16px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    }
+
+    .title {
+      margin: 0 0 10px 2px;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.1px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 400px 130px 160px 150px;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .stack { display: grid; gap: 10px; }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: 72px 104px 10px 92px 1fr;
+      gap: 8px 8px;
+      align-items: center;
+    }
+
+    .label {
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.05;
+    }
+
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      min-height: 30px;
+      padding: 4px 7px;
+      border: 1px solid var(--border);
+      background: var(--field);
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    input[readonly] {
+      background: #f6f6f6;
+    }
+
+    .plot-wrap {
+      margin-top: 12px;
+    }
+
+    canvas {
+      width: 100%;
+      height: 300px;
+      display: block;
+      background: var(--plot);
+      border: 1px solid #6b6b6b;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      justify-content: center;
+    }
+
+    button {
+      min-width: 96px;
+      min-height: 46px;
+      border: 1px solid #888;
+      background: #dfdfdf;
+      color: #111;
+      font-size: 15px;
+      cursor: pointer;
+      box-shadow: inset 0 1px 0 #fff;
+    }
+
+    button:hover { background: #e8e8e8; }
+
+    .gas-list {
+      display: grid;
+      gap: 10px;
+      padding-top: 2px;
+    }
+
+    .gas-list label,
+    .checkbox-row label,
+    .inline-radios label {
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .subpanel {
+      border: 1px solid #aaaaaa;
+      background: var(--panel);
+      padding: 8px 10px 10px 10px;
+      margin-top: 14px;
+      width: 128px;
+    }
+
+    .subpanel h3 {
+      margin: -2px 0 8px 0;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .hidden { display: none !important; }
+
+    .results {
+      display: grid;
+      gap: 24px;
+      padding-top: 8px;
+    }
+
+    .result-row {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .inline-radios {
+      display: grid;
+      gap: 8px;
+    }
+
+    .trimix-grid,
+    .heliair-grid {
+      display: grid;
+      grid-template-columns: 46px 1fr;
+      gap: 8px 8px;
+      align-items: center;
+    }
+
+    .action-stack {
+      display: grid;
+      gap: 18px;
+      padding-top: 36px;
+      align-content: start;
+    }
+
+    .checkbox-row {
+      padding-left: 2px;
+      margin-top: 2px;
+    }
+
+    .green { background: #9be29b !important; }
+    .yellow { background: #fff29a !important; }
+    .red { background: #f4a0a0 !important; }
+    .white { background: #ffffff !important; }
+
+    .note {
+      display: none;
+    }
+
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: 1fr; }
+      .action-stack { padding-top: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="title">Predict - Dive Outcome Prediction</div>
+
+    <div class="layout">
+      <div class="stack">
+        <div class="field-grid">
+          <input id="depthFsw" type="number" step="any" value="" />
+          <div class="label">Depth (fsw)</div>
+          <div></div>
+          <input id="densityBTPS" class="white" type="text" readonly />
+          <div class="label">Density<br>(g/L) 37° C</div>
+
+          <input id="depthMsw" type="number" step="any" value="" />
+          <div class="label">Depth (msw)</div>
+          <div></div>
+          <input id="density0C" type="text" readonly />
+          <div class="label">Density<br>(g/L) 0° C</div>
+
+          <input id="ata" type="text" readonly />
+          <div class="label">ATA</div>
+          <div></div>
+          <input id="engDensity" type="text" readonly />
+          <div class="label">Density<br>(lb/cuft) at<br>70° F</div>
+
+          <input id="peakDp" type="number" step="any" value="" />
+          <div class="label">DP<br>(cmH2O)</div>
+          <div></div>
+          <div></div>
+          <div></div>
+        </div>
+
+        <div class="plot-wrap">
+          <canvas id="plot" width="520" height="320"></canvas>
+        </div>
+
+        <div class="btn-row">
+          <button id="clearPlotBtn">Clear</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="gas-list">
+          <label><input type="radio" name="gasMode" value="air" checked /> Air</label>
+          <label><input type="radio" name="gasMode" value="nitroxN2" /> Nitrox</label>
+          <label><input type="radio" name="gasMode" value="heliox" /> Heliox</label>
+          <label><input type="radio" name="gasMode" value="heliair" /> Heliair</label>
+          <label><input type="radio" name="gasMode" value="trimix" /> Trimix</label>
+          <label><input type="radio" name="gasMode" value="hydrox" /> Hydrox</label>
+        </div>
+
+        <div id="mixedGasPanel" class="subpanel hidden">
+          <h3>O2</h3>
+          <div class="inline-radios">
+            <label><input type="radio" name="o2Mode" value="atm" /> atm</label>
+            <label><input type="radio" name="o2Mode" value="percent" checked /> %</label>
+          </div>
+
+          <div id="o2AtaWrap" class="stack hidden" style="margin-top:8px;">
+            <div class="label">O2 (atm)</div>
+            <input id="o2Ata" type="number" step="any" value="1.3" />
+          </div>
+
+          <div id="o2PercentWrap" class="stack" style="margin-top:8px;">
+            <div class="label">%O2</div>
+            <input id="o2Percent" type="number" step="any" value="32" />
+          </div>
+
+          <button id="densCalcBtn" type="button" style="margin-top:10px; min-width:104px;">Dens Calc</button>
+        </div>
+
+        <div id="trimixPanel" class="subpanel hidden" style="width:140px;">
+          <h3>Trimix %</h3>
+          <div class="trimix-grid">
+            <input id="trimixO2" type="number" step="any" value="18" />
+            <div class="label">O2</div>
+            <input id="trimixHe" type="number" step="any" value="45" />
+            <div class="label">He</div>
+            <input id="trimixN2" type="text" readonly />
+            <div class="label">N2</div>
+          </div>
+          <button id="trimixCalcBtn" type="button" style="margin-top:10px; min-width:104px;">Dens Calc</button>
+        </div>
+
+        <div id="heliairPanel" class="subpanel hidden" style="width:128px; margin-top:86px;">
+          <h3>Heliair %</h3>
+          <div class="heliair-grid">
+            <input id="heliairHe" type="number" step="any" value="50" />
+            <div class="label">He</div>
+          </div>
+          <button id="heliairCalcBtn" type="button" style="margin-top:10px; min-width:104px;">Dens Calc</button>
+        </div>
+      </div>
+
+      <div class="results">
+        <div class="result-row">
+          <input id="p2Out" class="white" type="text" readonly />
+          <div class="label">Event<br>Probability</div>
+        </div>
+        <div class="result-row">
+          <input id="po2Out" class="white" type="text" readonly />
+          <div class="label">PO2</div>
+        </div>
+        <div class="result-row">
+          <input id="pn2Out" class="white" type="text" readonly />
+          <div class="label">PN2</div>
+        </div>
+        <div class="result-row">
+          <input id="eadOut" class="white" type="text" readonly />
+          <div class="label">EAD</div>
+        </div>
+      </div>
+
+      <div class="action-stack">
+        <button id="calcBtn">Calculate</button>
+        <div class="checkbox-row">
+          <label><input id="narcosisEffect" type="checkbox" /> narcosis</label>
+        </div>
+        <button id="exitBtn" type="button" style="width:80px; min-width:80px; justify-self:start;">Exit</button>
+      </div>
+    </div>
+
+    <div class="note">Only one breathing gas is active at a time. The gas-specific input panel appears only when that gas requires additional values, matching the original VB6 interaction more closely.</div>
+  </div>
+
+  <script>
+    const constants = {
+      Hedns: 0.1785,
+      H2dns: 0.08988,
+      N2dns: 1.2506,
+      O2dns: 1.429,
+      airdns: 1.2929,
+      slpe: 7.4454,
+      thr: 58.579,
+      d50: 13.675,
+      pwr: 1.5664,
+      del: -0.6102
+    };
+
+    const el = id => document.getElementById(id);
+    const $$ = sel => Array.from(document.querySelectorAll(sel));
+
+    function fmt(n, digits = 2) {
+      if (!Number.isFinite(n)) return '';
+      return Number(n).toFixed(digits);
+    }
+
+    function colorize(input, state) {
+      input.classList.remove('green', 'yellow', 'red', 'white');
+      input.classList.add(state);
+    }
+
+    function getGasMode() {
+      return document.querySelector('input[name="gasMode"]:checked').value;
+    }
+
+    function getO2Mode() {
+      return document.querySelector('input[name="o2Mode"]:checked').value;
+    }
+
+    function updateDepth(source = 'fsw') {
+      const fswInput = el('depthFsw');
+      const mswInput = el('depthMsw');
+
+      const fswRaw = fswInput.value.trim();
+      const mswRaw = mswInput.value.trim();
+
+      if (!fswRaw && !mswRaw) {
+        el('ata').value = '';
+        el('densityBTPS').value = '';
+        el('density0C').value = '';
+        el('engDensity').value = '';
+        updateTrimixN2();
+        return;
+      }
+
+      let depthFsw = 0;
+      let depthMsw = 0;
+
+      if (source === 'msw') {
+        depthMsw = parseFloat(mswRaw) || 0;
+        depthFsw = depthMsw * 3.2646;
+        fswInput.value = depthMsw || mswRaw ? fmt(depthFsw, 1) : '';
+      } else {
+        depthFsw = parseFloat(fswRaw) || 0;
+        depthMsw = depthFsw / 3.2646;
+        mswInput.value = depthFsw || fswRaw ? fmt(depthMsw, 1) : '';
+      }
+
+      const ata = depthFsw / 33 + 1;
+      el('ata').value = fmt(ata, 2);
+      updateTrimixN2();
+
+      if (getGasMode() === 'air') {
+        const res = airDensity(ata);
+        el('densityBTPS').value = fmt(res.densityBTPS, 1);
+        el('density0C').value = fmt(res.density, 1);
+        el('engDensity').value = fmt(res.engDensity, 2);
+      }
+    }
+
+    function updateTrimixN2() {
+      const o2 = parseFloat(el('trimixO2').value) || 0;
+      const he = parseFloat(el('trimixHe').value) || 0;
+      el('trimixN2').value = fmt(100 - o2 - he, 1);
+    }
+
+    function updateSubmenus() {
+      const gas = getGasMode();
+      el('mixedGasPanel').classList.add('hidden');
+      el('trimixPanel').classList.add('hidden');
+      el('heliairPanel').classList.add('hidden');
+
+      if (gas === 'nitroxN2' || gas === 'heliox' || gas === 'hydrox') {
+        el('mixedGasPanel').classList.remove('hidden');
+      } else if (gas === 'trimix') {
+        el('trimixPanel').classList.remove('hidden');
+      } else if (gas === 'heliair') {
+        el('heliairPanel').classList.remove('hidden');
+      }
+
+      /* Hide narcosis checkbox for heliox and hydrox */
+      const narcosisRow = document.querySelector('.checkbox-row');
+      const narcosisBox = el('narcosisEffect');
+
+      if (gas === 'heliox' || gas === 'hydrox') {
+        narcosisRow.classList.add('hidden');
+        narcosisBox.checked = false;   // force disabled state when hidden
+      } else {
+        narcosisRow.classList.remove('hidden');
+      }
+
+      updateO2ModeVisibility();
+    }
+
+    function updateO2ModeVisibility() {
+      const showMixed = !el('mixedGasPanel').classList.contains('hidden');
+      const o2Mode = getO2Mode();
+      el('o2AtaWrap').classList.toggle('hidden', !showMixed || o2Mode !== 'atm');
+      el('o2PercentWrap').classList.toggle('hidden', !showMixed || o2Mode !== 'percent');
+    }
+
+    function airDensity(ata) {
+      const stdDensity = constants.airdns;
+      const density = stdDensity * ata;
+      const densityBTPS = 0.826 * density;
+      const engDensity = stdDensity * ata * (273.15 / (16.018463 * (273.15 + 21.11)));
+      return { density, densityBTPS, engDensity };
+    }
+
+    function mixedDensity(ata, diluentDns) {
+      let o2pcnt = 0;
+      if (getO2Mode() === 'atm') {
+        const o2ata = parseFloat(el('o2Ata').value) || 0;
+        o2pcnt = ata > 0 ? 100 * o2ata / ata : 0;
+      } else {
+        o2pcnt = parseFloat(el('o2Percent').value) || 0;
+      }
+      const diluentPcnt = 100 - o2pcnt;
+      const stdDensity = (constants.O2dns * 0.01 * o2pcnt) + (diluentPcnt * 0.01 * diluentDns);
+      const density = ata * stdDensity;
+      const densityBTPS = 0.826 * density;
+      const engDensity = stdDensity * ata * (273.15 / (16.018463 * (273.15 + 21.11)));
+      return { density, densityBTPS, engDensity, o2pcnt };
+    }
+
+    function trimixDensityCalc(ata) {
+      const trimixO2 = parseFloat(el('trimixO2').value) || 0;
+      const trimixHe = parseFloat(el('trimixHe').value) || 0;
+      const trimixN2 = 100 - trimixO2 - trimixHe;
+      const trimixDensity = (trimixO2 * 0.01 * constants.O2dns) + (trimixHe * 0.01 * constants.Hedns) + (trimixN2 * 0.01 * constants.N2dns);
+      const density = ata * trimixDensity;
+      const densityBTPS = 0.826 * density;
+      const engDensity = trimixDensity * ata * (273.15 / (16.018463 * (273.15 + 21.11)));
+      return { trimixO2, trimixN2, density, densityBTPS, engDensity };
+    }
+
+    function heliairDensityCalc(ata) {
+      const hePcnt = parseFloat(el('heliairHe').value) || 0;
+      const airPcnt = 100 - hePcnt;
+      const stdDensity = (constants.airdns * 0.01 * airPcnt) + (constants.Hedns * 0.01 * hePcnt);
+      const density = ata * stdDensity;
+      const densityBTPS = 0.826 * density;
+      const engDensity = stdDensity * ata * (273.15 / (16.018463 * (273.15 + 21.11)));
+      return { density, densityBTPS, engDensity };
+    }
+
+    function drawPlot(peak, densityBTPS, noNarcosis) {
+      const canvas = el('plot');
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--plot');
+      ctx.fillRect(0, 0, w, h);
+
+      const p = [];
+      for (let j = 0; j <= 100; j++) {
+        const dose = j + (constants.slpe * densityBTPS) - constants.thr;
+        let prob = 0;
+        if (dose >= 0) {
+          prob = 1 / (1 + ((constants.d50 ** constants.pwr) / (dose ** constants.pwr)));
+          if (noNarcosis) {
+            prob = (1 + constants.del) * prob;
+          }
+        }
+        p[j] = Math.max(0, prob);
+      }
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let j = 1; j <= 100; j++) {
+        const x = j * w / 105;
+        const y = h / 1.15 - (p[j] * h / 1.2);
+        if (j === 1) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      ctx.strokeStyle = '#ffd74d';
+      ctx.beginPath();
+      const xPeak = peak * w / 105;
+      ctx.moveTo(xPeak, 0);
+      ctx.lineTo(xPeak, h);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#b0b0b0';
+      ctx.beginPath();
+      ctx.moveTo(0, h / 1.15);
+      ctx.lineTo(w / 1.05, h / 1.15);
+      ctx.stroke();
+
+      ctx.fillStyle = '#eaf7ff';
+      ctx.font = '16px Arial';
+      ctx.fillText('0', 4, h - 26);
+      ctx.fillText('50', w * 0.46, h - 26);
+      ctx.fillText('100', w * 0.9, h - 26);
+      ctx.fillText('DP (cmH2O)', w * 0.38, h - 10);
+    }
+
+    function calculateDensityOnly() {
+      updateDepth(el('depthMsw').value.trim() && !el('depthFsw').value.trim() ? 'msw' : 'fsw');
+      const ata = parseFloat(el('ata').value) || 0;
+      const depth = parseFloat(el('depthFsw').value) || 0;
+
+      if (!depth && !el('depthFsw').value.trim() && !el('depthMsw').value.trim()) {
+        alert('Enter Depth (fsw) or Depth (msw)');
+        return null;
+      }
+
+      const gasMode = getGasMode();
+      let density = 0;
+      let densityBTPS = 0;
+      let engDensity = 0;
+      let PO2 = 0;
+      let PN2 = 0;
+      let FN2 = 0.79;
+
+      if (gasMode === 'air') {
+        const res = airDensity(ata);
+        density = res.density;
+        densityBTPS = res.densityBTPS;
+        engDensity = res.engDensity;
+        PO2 = 0.21 * ata;
+        PN2 = 0.79 * ata;
+        FN2 = 0.79;
+      } else if (gasMode === 'nitroxN2') {
+        const res = mixedDensity(ata, constants.N2dns);
+        density = res.density;
+        densityBTPS = res.densityBTPS;
+        engDensity = res.engDensity;
+        if (getO2Mode() === 'atm') {
+          PO2 = parseFloat(el('o2Ata').value) || 0;
+          PN2 = ata - PO2;
+          FN2 = ata > 0 ? PN2 / ata : 0;
+        } else {
+          PO2 = (res.o2pcnt / 100) * ata;
+          PN2 = ata - PO2;
+          FN2 = 1 - (res.o2pcnt / 100);
+        }
+      } else if (gasMode === 'heliox') {
+        const res = mixedDensity(ata, constants.Hedns);
+        density = res.density;
+        densityBTPS = res.densityBTPS;
+        engDensity = res.engDensity;
+        PO2 = getO2Mode() === 'atm' ? (parseFloat(el('o2Ata').value) || 0) : (res.o2pcnt / 100) * ata;
+        PN2 = 0;
+        FN2 = 0;
+      } else if (gasMode === 'hydrox') {
+        const res = mixedDensity(ata, constants.H2dns);
+        density = res.density;
+        densityBTPS = res.densityBTPS;
+        engDensity = res.engDensity;
+        PO2 = getO2Mode() === 'atm' ? (parseFloat(el('o2Ata').value) || 0) : (res.o2pcnt / 100) * ata;
+        PN2 = 0;
+        FN2 = 0;
+      } else if (gasMode === 'trimix') {
+        const res = trimixDensityCalc(ata);
+        density = res.density;
+        densityBTPS = res.densityBTPS;
+        engDensity = res.engDensity;
+        PO2 = 0.01 * res.trimixO2 * ata;
+        PN2 = 0.01 * res.trimixN2 * ata;
+        FN2 = 0.01 * res.trimixN2;
+      } else if (gasMode === 'heliair') {
+        const res = heliairDensityCalc(ata);
+        density = res.density;
+        densityBTPS = res.densityBTPS;
+        engDensity = res.engDensity;
+        const heFraction = (parseFloat(el('heliairHe').value) || 0) / 100;
+        PO2 = 0.21 * (1 - heFraction) * ata;
+        FN2 = 0.79 * (1 - heFraction);
+        PN2 = FN2 * ata;
+      }
+
+      const EAD = ((depth + 33) * (FN2 / 0.79)) - 33;
+
+      el('densityBTPS').value = fmt(densityBTPS, 1);
+      el('density0C').value = fmt(density, 1);
+      el('engDensity').value = fmt(engDensity, 2);
+      el('po2Out').value = fmt(PO2, 2);
+      el('pn2Out').value = fmt(PN2, 2);
+      el('eadOut').value = fmt(EAD, 1);
+
+      if (PO2 > 1.6) colorize(el('po2Out'), 'red');
+      else if (PO2 >= 1.5 && PO2 <= 1.6) colorize(el('po2Out'), 'yellow');
+      else if (PO2 < 1.5 && PO2 >= 0.24) colorize(el('po2Out'), 'green');
+      else if (PO2 < 0.24 && PO2 >= 0.21) colorize(el('po2Out'), 'yellow');
+      else if (PO2 < 0.19) colorize(el('po2Out'), 'red');
+      else colorize(el('po2Out'), 'white');
+
+      if (PN2 <= 3.16) colorize(el('pn2Out'), 'white');
+      else colorize(el('pn2Out'), 'yellow');
+
+      return { ata, depth, densityBTPS };
+    }
+
+    function computeProbability(peak, densityBTPS, noNarcosis) {
+      const dose = peak + (constants.slpe * densityBTPS) - constants.thr;
+      let p2 = 0;
+
+      if (dose > 0) {
+        p2 = 1 / (1 + ((constants.d50 ** constants.pwr) / (dose ** constants.pwr)));
+        if (noNarcosis) {
+          p2 = (1 + constants.del) * p2;
+        }
+      }
+
+      if (p2 < 0.01) p2 = 0;
+      return Math.max(0, p2);
+    }
+
+    function calculate() {
+      const densityResult = calculateDensityOnly();
+      if (!densityResult) return;
+
+      const { densityBTPS } = densityResult;
+      const peak = parseFloat(el('peakDp').value);
+      if (!Number.isFinite(peak)) {
+        alert('Enter a peak-to-peak pressure');
+        return;
+      }
+
+      const noNarcosis = el('narcosisEffect').checked;
+      const p2 = computeProbability(peak, densityBTPS, noNarcosis);
+
+      el('p2Out').value = p2 > 0 ? fmt(p2, 2) : '0';
+
+      if (p2 < 0.1) colorize(el('p2Out'), 'green');
+      else if (p2 < 0.4) colorize(el('p2Out'), 'yellow');
+      else colorize(el('p2Out'), 'red');
+
+      drawPlot(peak, densityBTPS, noNarcosis);
+    }
+
+    function clearPlot() {
+      const canvas = el('plot');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--plot');
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function resetAsClosed() {
+      window.location.href = 'about:blank';
+    }
+
+    el('depthFsw').addEventListener('input', () => updateDepth('fsw'));
+    el('depthMsw').addEventListener('input', () => updateDepth('msw'));
+    el('trimixO2').addEventListener('input', updateTrimixN2);
+    el('trimixHe').addEventListener('input', updateTrimixN2);
+    $$("input[name='gasMode']").forEach(r => r.addEventListener('change', () => {
+      updateSubmenus();
+      if (el('ata').value.trim()) calculateDensityOnly();
+    }));
+    $$("input[name='o2Mode']").forEach(r => r.addEventListener('change', updateO2ModeVisibility));
+    el('calcBtn').addEventListener('click', calculate);
+    el('densCalcBtn').addEventListener('click', calculateDensityOnly);
+    el('trimixCalcBtn').addEventListener('click', calculateDensityOnly);
+    el('heliairCalcBtn').addEventListener('click', calculateDensityOnly);
+    el('clearPlotBtn').addEventListener('click', clearPlot);
+    el('exitBtn').addEventListener('click', resetAsClosed);
+
+    function runTests() {
+      console.assert(Math.abs(airDensity(4).density - (constants.airdns * 4)) < 1e-9, 'airDensity should scale with ATA');
+      console.assert(Math.abs(trimixDensityCalc(4).trimixN2 - (100 - (parseFloat(el('trimixO2').value) || 0) - (parseFloat(el('trimixHe').value) || 0))) < 1e-9, 'trimix N2 should be derived from O2 and He');
+      console.assert(computeProbability(0, 0, true) === 0, 'probability should be zero when dose is non-positive');
+      console.assert(Number.isFinite(computeProbability(20, 6, true)), 'probability should be finite for normal inputs');
+    }
+
+    updateTrimixN2();
+    updateSubmenus();
+    clearPlot();
+    runTests();
+  </script>
+</body>
+</html>
