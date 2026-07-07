@@ -694,7 +694,7 @@
     el('trimixCalcBtn').addEventListener('click', calculateDensityOnly);
     el('heliairCalcBtn').addEventListener('click', calculateDensityOnly);
     el('clearPlotBtn').addEventListener('click', clearPlot);
-    el('exitBtn').addEventListener('click', resetAsClosed);
+    <!-- el('exitBtn').addEventListener('click', resetAsClosed);
 
     function runTests() {
       console.assert(Math.abs(airDensity(4).density - (constants.airdns * 4)) < 1e-9, 'airDensity should scale with ATA');
